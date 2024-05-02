@@ -6,7 +6,7 @@ import { createHash } from "crypto";
 import Logger from "../loaders/logger";
 import { Message } from "../utils/enums";
 import getFormatDate from "../utils/date";
-import { connection } from "../utils/mysql";
+import { connection, connection_menu } from "../utils/mysql";
 import { Request, Response } from "express";
 import { createMathExpr } from "svg-captcha";
 
@@ -56,16 +56,8 @@ let expiresIn = 60000;
  */
 
 const login = async (req: Request, res: Response) => {
-  // const { username, password, verify } = req.body;
-  // if (generateVerify !== verify) return res.json({
-  //   success: false,
-  // data: {
-  //   message: Message[0];
-  // }
-  // })
   const { username, password } = req.body;
-  let sql: string =
-    "select * from users where username=" + "'" + username + "'";
+  let sql: string = "select * from users where username=" + "'" + username + "'";
   connection.query(sql, async function (err, data: any) {
     if (data.length == 0) {
       await res.json({
@@ -83,41 +75,22 @@ const login = async (req: Request, res: Response) => {
           secret.jwtSecret,
           { expiresIn }
         );
-        if (username === "admin") {
-          await res.json({
-            success: true,
-            data: {
-              message: Message[2],
-              username,
-              // 这里模拟角色，根据自己需求修改
-              roles: ["admin"],
-              accessToken,
-              // 这里模拟刷新token，根据自己需求修改
-              refreshToken: "eyJhbGciOiJIUzUxMiJ9.adminRefresh",
-              expires: new Date(new Date()).getTime() + expiresIn,
-              // 这个标识是真实后端返回的接口，只是为了演示
-              pureAdminBackend:
-                "这个标识是pure-admin-backend真实后端返回的接口，只是为了演示",
-            },
-          });
-        } else {
-          await res.json({
-            success: true,
-            data: {
-              message: Message[2],
-              username,
-              // 这里模拟角色，根据自己需求修改
-              roles: ["common"],
-              accessToken,
-              // 这里模拟刷新token，根据自己需求修改
-              refreshToken: "eyJhbGciOiJIUzUxMiJ9.adminRefresh",
-              expires: new Date(new Date()).getTime() + expiresIn,
-              // 这个标识是真实后端返回的接口，只是为了演示
-              pureAdminBackend:
-                "这个标识是pure-admin-backend真实后端返回的接口，只是为了演示",
-            },
-          });
-        }
+        await res.json({
+          success: true,
+          data: {
+            message: Message[2],
+            username,
+            // 这里模拟角色，根据自己需求修改
+            roles: ["admin"],
+            accessToken,
+            // 这里模拟刷新token，根据自己需求修改
+            refreshToken: "eyJhbGciOiJIUzUxMiJ9.adminRefresh",
+            expires: new Date(new Date()).getTime() + expiresIn,
+            // 这个标识是真实后端返回的接口，只是为了演示
+            pureAdminBackend:
+              "这个标识是pure-admin-backend真实后端返回的接口，只是为了演示",
+          },
+        });
       } else {
         await res.json({
           success: false,
@@ -204,6 +177,36 @@ const register = async (req: Request, res: Response) => {
     }
   });
 };
+
+const asyncRoutes = async (req: Request, res: Response) => {
+  let sql: string = "select * from menu";
+  connection_menu.query(sql, async (err, data: any) => {
+    console.log(11,data)
+    if (data && Array.isArray(data)) {
+      data = data.map(({ title, rank, path, ...fields }) => {
+        return {
+          path,
+          meta: {
+            title,
+          },
+          children: [
+            {
+              path: path + '/index',
+              ...fields,
+              meta: {
+                title
+              },
+            }
+          ],
+        }
+      })
+    }
+    await res.json({
+      success: true,
+      data,
+    });
+  })
+}
 
 /**
  * @typedef UpdateList
@@ -467,4 +470,5 @@ export {
   searchVague,
   upload,
   captcha,
+  asyncRoutes
 };

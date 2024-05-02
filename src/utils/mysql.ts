@@ -12,3 +12,8 @@ export function queryTable(s: string): void {
     err ? Logger.error(err) : Logger.info(`${s}表创建成功`);
   });
 }
+
+/** menu数据库 */
+export const connection_menu = mysql.createConnection(
+  Object.assign({ database: "menu" }, mysqlConfig.mysql)
+);
