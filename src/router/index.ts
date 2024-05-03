@@ -1,2 +1,2 @@
 import './oaModel'
-import './imagesModel/imagesModel'
+import './imagesModel'
