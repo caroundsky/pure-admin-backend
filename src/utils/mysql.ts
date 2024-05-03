@@ -3,17 +3,14 @@ import mysqlConfig from "../config";
 import Logger from "../loaders/logger";
 
 /** user数据库 */
-export const connection = mysql.createConnection(
-  Object.assign({ database: "user" }, mysqlConfig.mysql)
-);
+export const connection = (key) => {
+  return mysql.createConnection(
+    Object.assign({ database: key }, mysqlConfig.mysql)
+  );
+}
 
 export function queryTable(s: string): void {
-  connection.query(s, (err) => {
+  connection('user').query(s, (err) => {
     err ? Logger.error(err) : Logger.info(`${s}表创建成功`);
   });
 }
-
-/** menu数据库 */
-export const connection_menu = mysql.createConnection(
-  Object.assign({ database: "menu" }, mysqlConfig.mysql)
-);

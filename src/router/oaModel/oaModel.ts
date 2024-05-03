@@ -1,12 +1,12 @@
 import * as fs from "fs";
-import secret from "../config";
+import secret from "../../config";
 import * as mysql from "mysql2";
 import * as jwt from "jsonwebtoken";
 import { createHash } from "crypto";
-import Logger from "../loaders/logger";
-import { Message } from "../utils/enums";
-import getFormatDate from "../utils/date";
-import { connection, connection_menu } from "../utils/mysql";
+import Logger from "../../loaders/logger";
+import { Message } from "../../utils/enums";
+import getFormatDate from "../../utils/date";
+import { connection } from "../../utils/mysql";
 import { Request, Response } from "express";
 import { createMathExpr } from "svg-captcha";
 
@@ -17,6 +17,7 @@ let generateVerify: number;
 
 /** 过期时间 单位：毫秒 默认 1分钟过期，方便演示 */
 let expiresIn = 60000;
+let expiresLong = 7 * 24 * 60 * 60 * 1000;
 
 /**
  * @typedef Error
@@ -58,7 +59,7 @@ let expiresIn = 60000;
 const login = async (req: Request, res: Response) => {
   const { username, password } = req.body;
   let sql: string = "select * from users where username=" + "'" + username + "'";
-  connection.query(sql, async function (err, data: any) {
+  connection('user').query(sql, async function (err, data: any) {
     if (data.length == 0) {
       await res.json({
         success: false,
@@ -75,20 +76,23 @@ const login = async (req: Request, res: Response) => {
           secret.jwtSecret,
           { expiresIn }
         );
+        const refreshToken = jwt.sign(
+          {
+            accountId: data[0].id,
+          },
+          secret.jwtSecret,
+          { expiresIn: expiresLong }
+        );
         await res.json({
           success: true,
           data: {
-            message: Message[2],
             username,
             // 这里模拟角色，根据自己需求修改
             roles: ["admin"],
             accessToken,
             // 这里模拟刷新token，根据自己需求修改
-            refreshToken: "eyJhbGciOiJIUzUxMiJ9.adminRefresh",
-            expires: new Date(new Date()).getTime() + expiresIn,
-            // 这个标识是真实后端返回的接口，只是为了演示
-            pureAdminBackend:
-              "这个标识是pure-admin-backend真实后端返回的接口，只是为了演示",
+            refreshToken,
+            expires: new Date(new Date()).getTime() + expiresIn
           },
         });
       } else {
@@ -142,7 +146,7 @@ const register = async (req: Request, res: Response) => {
     });
   let sql: string =
     "select * from users where username=" + "'" + username + "'";
-  connection.query(sql, async (err, data: any) => {
+  connection('user').query(sql, async (err, data: any) => {
     if (data.length > 0) {
       await res.json({
         success: false,
@@ -164,7 +168,7 @@ const register = async (req: Request, res: Response) => {
         time +
         "'" +
         ")";
-      connection.query(sql, async function (err) {
+      connection('user').query(sql, async function (err) {
         if (err) {
           Logger.error(err);
         } else {
@@ -179,22 +183,33 @@ const register = async (req: Request, res: Response) => {
 };
 
 const asyncRoutes = async (req: Request, res: Response) => {
+  let payload = null;
+  try {
+    const authorizationHeader = req.get("Authorization") as string;
+    const accessToken = authorizationHeader.substr("Bearer ".length);
+    payload = jwt.verify(accessToken, secret.jwtSecret);
+  } catch (error) {
+    return res.status(401).end();
+  }
+  
   let sql: string = "select * from menu";
-  connection_menu.query(sql, async (err, data: any) => {
-    console.log(11,data)
+  connection('menu').query(sql, async (err, data: any) => {
     if (data && Array.isArray(data)) {
-      data = data.map(({ title, rank, path, ...fields }) => {
+      data = data.map(({ title, rank, path, icon, ...fields }) => {
         return {
           path,
           meta: {
             title,
+            icon
           },
           children: [
             {
               path: path + '/index',
               ...fields,
               meta: {
-                title
+                title,
+                roles: ["admin", "common"],
+                keepAlive: true
               },
             }
           ],
@@ -206,6 +221,38 @@ const asyncRoutes = async (req: Request, res: Response) => {
       data,
     });
   })
+}
+
+const refreshToken = async (req: Request, res: Response) => {
+  const { refreshToken } = req.body
+  let payload = null;
+  payload = jwt.verify(refreshToken, secret.jwtSecret)
+  if (payload) {
+    const accessToken = jwt.sign(
+      {
+        accountId: payload.id,
+      },
+      secret.jwtSecret,
+      { expiresIn }
+    );
+    const refreshToken = jwt.sign(
+      {
+        accountId: payload.id,
+      },
+      secret.jwtSecret,
+      { expiresIn: expiresLong }
+    );
+    await res.json({
+      success: true,
+      data: {
+        accessToken,
+        refreshToken,
+        expires: new Date(new Date()).getTime() + expiresIn
+      },
+    });
+  } else {
+    return res.status(401).end();
+  }
 }
 
 /**
@@ -237,14 +284,14 @@ const updateList = async (req: Request, res: Response) => {
   }
   let modifySql: string = "UPDATE users SET username = ? WHERE id = ?";
   let sql: string = "select * from users where id=" + id;
-  connection.query(sql, function (err, data) {
-    connection.query(sql, function (err) {
+  connection('user').query(sql, function (err, data) {
+    connection('user').query(sql, function (err) {
       if (err) {
         Logger.error(err);
       } else {
         let modifyParams: string[] = [username, id];
         // 改
-        connection.query(modifySql, modifyParams, async function (err, result) {
+        connection('user').query(modifySql, modifyParams, async function (err, result) {
           if (err) {
             Logger.error(err);
           } else {
@@ -285,7 +332,7 @@ const deleteList = async (req: Request, res: Response) => {
     return res.status(401).end();
   }
   let sql: string = "DELETE FROM users where id=" + "'" + id + "'";
-  connection.query(sql, async function (err, data) {
+  connection('user').query(sql, async function (err, data) {
     if (err) {
       console.log(err);
     } else {
@@ -329,7 +376,7 @@ const searchPage = async (req: Request, res: Response) => {
   }
   let sql: string =
     "select * from users limit " + size + " offset " + size * (page - 1);
-  connection.query(sql, async function (err, data) {
+  connection('user').query(sql, async function (err, data) {
     if (err) {
       Logger.error(err);
     } else {
@@ -377,8 +424,8 @@ const searchVague = async (req: Request, res: Response) => {
     });
   let sql: string = "select * from users";
   sql += " WHERE username LIKE " + mysql.escape("%" + username + "%");
-  connection.query(sql, function (err, data) {
-    connection.query(sql, async function (err) {
+  connection('user').query(sql, function (err, data) {
+    connection('user').query(sql, async function (err) {
       if (err) {
         Logger.error(err);
       } else {
@@ -470,5 +517,6 @@ export {
   searchVague,
   upload,
   captcha,
-  asyncRoutes
+  asyncRoutes,
+  refreshToken
 };

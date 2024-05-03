@@ -6,60 +6,18 @@ import * as multer from "multer";
 import { user } from "./models/mysql";
 import Logger from "./loaders/logger";
 import { queryTable } from "./utils/mysql";
+import './router'
 const expressSwagger = require("express-swagger-generator")(app);
 expressSwagger(config.options);
 
 queryTable(user);
 
-import {
-  login,
-  register,
-  updateList,
-  deleteList,
-  searchPage,
-  searchVague,
-  upload,
-  captcha,
-  asyncRoutes
-} from "./router/http";
-
-app.post("/login", (req, res) => {
-  login(req, res);
-});
-
-app.post("/register", (req, res) => {
-  register(req, res);
-});
-
-app.put("/updateList/:id", (req, res) => {
-  updateList(req, res);
-});
-
-app.delete("/deleteList/:id", (req, res) => {
-  deleteList(req, res);
-});
-
-app.post("/searchPage", (req, res) => {
-  searchPage(req, res);
-});
-
-app.post("/searchVague", (req, res) => {
-  searchVague(req, res);
-});
-
 // 新建存放临时文件的文件夹
-const upload_tmp = multer({ dest: "upload_tmp/" });
-app.post("/upload", upload_tmp.any(), (req, res) => {
-  upload(req, res);
-});
+// const upload_tmp = multer({ dest: "upload_tmp/" });
+// app.post("/upload", upload_tmp.any(), (req, res) => {
+//   upload(req, res);
+// });
 
-app.get("/captcha", (req, res) => {
-  captcha(req, res);
-});
-
-app.get("/getAsyncRouter", (req, res) => {
-  asyncRoutes(req, res);
-});
 
 app.ws("/socket", function (ws, req) {
   ws.send(
