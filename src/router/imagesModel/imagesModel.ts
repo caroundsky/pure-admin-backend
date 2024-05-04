@@ -21,7 +21,7 @@ const searchPage = async (req: Request, res: Response) => {
   } catch (error) {
     return res.status(401).end();
   }
-  let sql: string = "select * from images limit " + pageIndex + " offset " + pageSize * (pageIndex - 1);
+  let sql: string = "select * from image_list limit " + pageIndex + " offset " + pageSize * (pageIndex - 1);
   connection('images').query(sql, async function (err, data) {
     console.log(11, data)
     if (err) {

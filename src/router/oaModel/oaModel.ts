@@ -192,7 +192,7 @@ const asyncRoutes = async (req: Request, res: Response) => {
     return res.status(401).end();
   }
   
-  let sql: string = "select * from menu";
+  let sql: string = "select * from menu_list";
   connection('menu').query(sql, async (err, data: any) => {
     if (data && Array.isArray(data)) {
       data = data.map(({ title, rank, path, icon, ...fields }) => {
