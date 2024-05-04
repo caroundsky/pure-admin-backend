@@ -6,10 +6,12 @@ import { createHash } from "crypto";
 import Logger from "../../loaders/logger";
 import { Message } from "../../utils/enums";
 import getFormatDate from "../../utils/date";
-import { connection } from "../../utils/mysql";
+import { connection as _connection } from "../../utils/mysql";
 import { Request, Response } from "express";
 
 const utils = require("@pureadmin/utils");
+
+const connection = _connection('images').promise()
 
 const searchPage = async (req: Request, res: Response) => {
   const { pageIndex, pageSize } = req.body;
@@ -21,18 +23,22 @@ const searchPage = async (req: Request, res: Response) => {
   } catch (error) {
     return res.status(401).end();
   }
-  let sql: string = "select * from image_list limit " + pageIndex + " offset " + pageSize * (pageIndex - 1);
-  connection('images').query(sql, async function (err, data) {
-    console.log(11, data)
-    if (err) {
-      Logger.error(err);
-    } else {
-      await res.json({
-        success: true,
-        data,
-      });
-    }
-  });
+  let counter_sql = "select count(*) as total from image_list;"
+  let sql: string = "select * from image_list limit " + pageSize + " offset " + pageSize * (pageIndex - 1);
+
+  try {
+    const [ total_res ] = await connection.query(counter_sql)
+    const [ data ] = await connection.query(sql)
+    await res.json({
+      success: true,
+      data: {
+        result: data,
+        total: total_res[0].total
+      },
+    });
+  } catch(err) {
+    Logger.error(err);
+  } 
 };
 
 export {

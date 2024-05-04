@@ -16,7 +16,7 @@ const utils = require("@pureadmin/utils");
 let generateVerify: number;
 
 /** 过期时间 单位：毫秒 默认 1分钟过期，方便演示 */
-let expiresIn = 60000;
+let expiresIn = 1 * 24 * 60 * 60 * 1000;
 let expiresLong = 7 * 24 * 60 * 60 * 1000;
 
 /**
