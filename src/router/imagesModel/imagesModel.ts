@@ -41,7 +41,32 @@ const searchPage = async (req: Request, res: Response) => {
   } 
 };
 
+const modifyImage = async (req: Request, res: Response) => {
+  const { id, name, url, desc, tag } = req.body;
+  let payload = null;
+  try {
+    const authorizationHeader = req.get("Authorization") as string;
+    const accessToken = authorizationHeader.substr("Bearer ".length);
+    payload = jwt.verify(accessToken, secret.jwtSecret);
+  } catch (error) {
+    return res.status(401).end();
+  }
+  let sql: string = "UPDATE image_list SET name = ? AND url = ? AND desc = ? AND tag = ? WHERE id = ?";
+  let modifyParams: string[] = [name, url, desc, tag, id]
+  console.log(modifyParams)
+  try {
+    await connection.query(sql, modifyParams)
+    await res.json({
+      success: true,
+      data: { message: Message[7] },
+    });
+  } catch(err) {
+    Logger.error(err);
+  }
+}
+
 export {
-  searchPage
+  searchPage,
+  modifyImage
 }
 
