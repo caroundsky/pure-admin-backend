@@ -51,9 +51,8 @@ const modifyImage = async (req: Request, res: Response) => {
   } catch (error) {
     return res.status(401).end();
   }
-  let sql: string = "UPDATE image_list SET name = ? AND url = ? AND desc = ? AND tag = ? WHERE id = ?";
+  let sql: string = "UPDATE image_list SET `name` = ?, `url` = ?, `desc` = ?, `tag` = ? WHERE `id` = ?";
   let modifyParams: string[] = [name, url, desc, tag, id]
-  console.log(modifyParams)
   try {
     await connection.query(sql, modifyParams)
     await res.json({
@@ -65,8 +64,55 @@ const modifyImage = async (req: Request, res: Response) => {
   }
 }
 
+const addImage = async (req: Request, res: Response) => {
+  const { name, url, desc, tag } = req.body;
+  let payload = null;
+  try {
+    const authorizationHeader = req.get("Authorization") as string;
+    const accessToken = authorizationHeader.substr("Bearer ".length);
+    payload = jwt.verify(accessToken, secret.jwtSecret);
+  } catch (error) {
+    return res.status(401).end();
+  }
+  let sql: string = "INSERT into image_list (`name`, `url`, `desc`, `tag`) VALUES (?,?,?,?)";
+  let addParams: string[] = [name, url, desc, 1]
+  try {
+    await connection.query(sql, addParams)
+    await res.json({
+      success: true,
+      data: { message: '添加成功' },
+    });
+  } catch(err) {
+    Logger.error(err);
+  }
+}
+
+const delImage = async (req: Request, res: Response) => {
+  const { id } = req.body;
+  let payload = null;
+  try {
+    const authorizationHeader = req.get("Authorization") as string;
+    const accessToken = authorizationHeader.substr("Bearer ".length);
+    payload = jwt.verify(accessToken, secret.jwtSecret);
+  } catch (error) {
+    return res.status(401).end();
+  }
+  let sql: string = "DELETE FROM image_list where id=" + "'" + id + "'";
+  try {
+    await connection.query(sql)
+    await res.json({
+      success: true,
+      data: { message: '删除成功' },
+    });
+  } catch(err) {
+    Logger.error(err);
+  }
+}
+
 export {
   searchPage,
-  modifyImage
+  modifyImage,
+  addImage,
+  delImage
 }
 
