@@ -16,3 +16,11 @@ app.post("/images/add-image", (req, res) => {
 app.post("/images/del-image", (req, res) => {
   imagesModel.delImage(req, res);
 });
+
+app.post("/images/query-tag", (req, res) => {
+  imagesModel.searchTag(req, res);
+});
+
+app.get("/images/get-tag", (req, res) => {
+  imagesModel.getTag(req, res);
+});
