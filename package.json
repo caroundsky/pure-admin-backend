@@ -3,7 +3,8 @@
   "version": "lastest",
   "description": "pure-admin官方后端",
   "scripts": {
-    "start": "nodemon --config nodemon.json src/server.ts"
+    "start": "nodemon --config nodemon.json src/server.ts",
+    "start:prod": "ts-node src/server.ts"
   },
   "author": "xiaoxian521",
   "license": "ISC",
