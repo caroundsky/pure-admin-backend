@@ -53,7 +53,7 @@ app
   })
   .on("error", (err) => {
     Logger.error(err);
-    process.exit(1);
+    // process.exit(1);
   });
 
 // open(`http://localhost:${config.port}`); // 自动打开默认浏览器
