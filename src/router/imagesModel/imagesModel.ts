@@ -9,9 +9,18 @@ import getFormatDate from "../../utils/date";
 import { connection as _connection } from "../../utils/mysql";
 import { Request, Response } from "express";
 
-const utils = require("@pureadmin/utils");
-
 const connection = _connection('images').promise()
+const valid = (req, res) => {
+  let payload
+  try {
+    const authorizationHeader = req.get("Authorization") as string;
+    const accessToken = authorizationHeader.substr("Bearer ".length);
+    payload = jwt.verify(accessToken, secret.jwtSecret);
+  } catch (error) {
+    return res.status(401).end();
+  }
+  return payload
+}
 
 const searchPage = async (req: Request, res: Response) => {
   const { pageIndex, pageSize } = req.body;
@@ -42,17 +51,13 @@ const searchPage = async (req: Request, res: Response) => {
 };
 
 const modifyImage = async (req: Request, res: Response) => {
-  const { id, name, url, desc, tag } = req.body;
-  let payload = null;
-  try {
-    const authorizationHeader = req.get("Authorization") as string;
-    const accessToken = authorizationHeader.substr("Bearer ".length);
-    payload = jwt.verify(accessToken, secret.jwtSecret);
-  } catch (error) {
-    return res.status(401).end();
-  }
-  let sql: string = "UPDATE image_list SET `name` = ?, `url` = ?, `desc` = ?, `tag` = ? WHERE `id` = ?";
-  let modifyParams: string[] = [name, url, desc, tag, id]
+  const { id, name, url, desc, tag, time_range } = req.body;
+  const update_time = new Date()
+
+  if (!valid(req, res)) return
+
+  let sql: string = "UPDATE image_list SET `name` = ?, `url` = ?, `desc` = ?, `tag` = ?, `time_range` = ?, `update_time` = ? WHERE `id` = ?";
+  let modifyParams: string[] = [name, url, desc, tag, time_range, update_time, id]
   try {
     await connection.query(sql, modifyParams)
     await res.json({
@@ -65,17 +70,12 @@ const modifyImage = async (req: Request, res: Response) => {
 }
 
 const addImage = async (req: Request, res: Response) => {
-  const { name, url, desc, tag } = req.body;
-  let payload = null;
-  try {
-    const authorizationHeader = req.get("Authorization") as string;
-    const accessToken = authorizationHeader.substr("Bearer ".length);
-    payload = jwt.verify(accessToken, secret.jwtSecret);
-  } catch (error) {
-    return res.status(401).end();
-  }
-  let sql: string = "INSERT into image_list (`name`, `url`, `desc`, `tag`) VALUES (?,?,?,?)";
-  let addParams: string[] = [name, url, desc, 1]
+  const { name, url, desc, tag, time_range, update_time = new Date() } = req.body;
+
+  if (!valid(req, res)) return
+
+  let sql: string = "INSERT into image_list (`name`, `url`, `desc`, `tag`, `time_range`, `update_time`) VALUES (?,?,?,?,?,?)";
+  let addParams: string[] = [name, url, desc, tag, time_range, update_time]
   try {
     await connection.query(sql, addParams)
     await res.json({
@@ -109,10 +109,52 @@ const delImage = async (req: Request, res: Response) => {
   }
 }
 
+const searchTag = async (req: Request, res: Response) => {
+  const { pageIndex, pageSize } = req.body;
+
+  if (!valid(req, res)) return 
+
+  let counter_sql = "select count(*) as total from tag_list;"
+  let sql: string = "select * from tag_list limit " + pageSize + " offset " + pageSize * (pageIndex - 1);
+
+  try {
+    const [ total_res ] = await connection.query(counter_sql)
+    const [ data ] = await connection.query(sql)
+    await res.json({
+      success: true,
+      data: {
+        result: data,
+        total: total_res[0].total
+      },
+    });
+  } catch(err) {
+    Logger.error(err);
+  } 
+};
+
+const getTag = async (req: Request, res: Response) => {
+  if (!valid(req, res)) return
+  
+  let sql: string = "select * from tag_list";
+
+  try {
+    const [ data ] = await connection.query(sql)
+    await res.json({
+      success: true,
+      data,
+    });
+  } catch(err) {
+    Logger.error(err);
+  } 
+}
+
 export {
   searchPage,
   modifyImage,
   addImage,
-  delImage
+  delImage,
+
+  searchTag,
+  getTag
 }
 
