@@ -24,3 +24,15 @@ app.post("/images/query-tag", (req, res) => {
 app.get("/images/get-tag", (req, res) => {
   imagesModel.getTag(req, res);
 });
+
+app.post("/images/modify-tag", (req, res) => {
+  imagesModel.modifyTag(req, res);
+});
+
+app.post("/images/add-tag", (req, res) => {
+  imagesModel.addTag(req, res);
+});
+
+app.post("/images/del-tag", (req, res) => {
+  imagesModel.delTag(req, res);
+});
