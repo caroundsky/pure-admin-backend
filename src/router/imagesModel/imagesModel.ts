@@ -43,13 +43,13 @@ const searchPage = async (req: Request, res: Response) => {
 };
 
 const modifyImage = async (req: Request, res: Response) => {
-  const { id, name, url, desc, tag, time_range } = req.body;
+  const { id, name, url, desc, tag, time_range, width, height } = req.body;
   const update_time = new Date()
 
   if (!valid(req, res)) return
 
-  let sql: string = "UPDATE image_list SET `name` = ?, `url` = ?, `desc` = ?, `tag` = ?, `time_range` = ?, `update_time` = ? WHERE `id` = ?";
-  let modifyParams: string[] = [name, url, desc, tag, time_range, update_time, id]
+  let sql: string = "UPDATE image_list SET `name` = ?, `url` = ?, `desc` = ?, `tag` = ?, `time_range` = ?, `width` = ?, `height` = ?, `update_time` = ? WHERE `id` = ?";
+  let modifyParams: string[] = [name, url, desc, tag, time_range, width, height, update_time, id]
   try {
     await connection.query(sql, modifyParams)
     await res.json({
@@ -62,12 +62,12 @@ const modifyImage = async (req: Request, res: Response) => {
 }
 
 const addImage = async (req: Request, res: Response) => {
-  const { name, url, desc, tag, time_range, update_time = new Date() } = req.body;
+  const { name, url, desc, tag, time_range, update_time = new Date(), width, height } = req.body;
 
   if (!valid(req, res)) return
 
-  let sql: string = "INSERT into image_list (`name`, `url`, `desc`, `tag`, `time_range`, `update_time`) VALUES (?,?,?,?,?,?)";
-  let addParams: string[] = [name, url, desc, tag, time_range, update_time]
+  let sql: string = "INSERT into image_list (`name`, `url`, `desc`, `tag`, `time_range`, `update_time`, `width`, `height`) VALUES (?,?,?,?,?,?,?,?)";
+  let addParams: string[] = [name, url, desc, tag, time_range, update_time, width, height]
   try {
     await connection.query(sql, addParams)
     await res.json({
