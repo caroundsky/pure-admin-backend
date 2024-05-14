@@ -1,7 +1,7 @@
 import app from "../../app"
 import * as pageModel from './pageModel'
 
-app.post("/get-tag", (req, res) => {
+app.get("/get-tag", (req, res) => {
   pageModel.getTag(req, res);
 });
 
