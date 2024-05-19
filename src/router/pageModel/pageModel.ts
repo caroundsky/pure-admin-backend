@@ -1,5 +1,6 @@
 import Logger from "../../loaders/logger";
 import { connection as _connection } from "../../utils/mysql";
+import { shuffle } from "../../utils/common";
 import { Request, Response } from "express";
 
 const connection = _connection('images').promise()
@@ -56,12 +57,23 @@ const ifDel = (ip) => {
 const getImages = async (req: Request, res: Response) => {
   if (!await vilidFlash(req, res)) return
   
-  const { pageIndex, pageSize } = req.body;
-  
-  let sql: string = "select * from image_list limit " + pageSize + " offset " + pageSize * (pageIndex - 1);
+  const { pageIndex, pageSize, tag, order = 'shuffle' } = req.body;
+  let condition = ''
+  let sort = ''
+  if (![undefined, ''].includes(tag)) {
+    condition = " where `tag` = ?"
+  }
+  if (order && order !== 'shuffle') {
+    sort = ` order by time_range ${order}`
+  }
+  let defaultSql = "select * from image_list" + condition + sort + " limit " + pageSize + " offset " + pageSize * (pageIndex - 1);
 
+  let modifyParams: string[] = [tag]
   try {
-    const [ data ] = await connection.query(sql)
+    let [ data ] = await connection.query(defaultSql, modifyParams)
+    if (order === 'shuffle') {
+      data = shuffle(data)
+    }
     await res.json({
       success: true,
       data,
