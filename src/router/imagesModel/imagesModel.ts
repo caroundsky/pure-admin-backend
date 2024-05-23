@@ -5,6 +5,9 @@ import { Message } from "../../utils/enums";
 import { connection as _connection } from "../../utils/mysql";
 import { Request, Response } from "express";
 
+import tinify from "tinify"
+tinify.key = process.env.TinyKey
+
 const connection = _connection('images').promise()
 
 const valid = (req, res) => {
@@ -43,13 +46,13 @@ const searchPage = async (req: Request, res: Response) => {
 };
 
 const modifyImage = async (req: Request, res: Response) => {
-  const { id, name, url, desc, tag, time_range, width, height } = req.body;
+  const { id, name, url, desc, tag, time_range, width, height, key } = req.body;
   const update_time = new Date()
 
   if (!valid(req, res)) return
 
-  let sql: string = "UPDATE image_list SET `name` = ?, `url` = ?, `desc` = ?, `tag` = ?, `time_range` = ?, `width` = ?, `height` = ?, `update_time` = ? WHERE `id` = ?";
-  let modifyParams: string[] = [name, url, desc, tag, time_range, width, height, update_time, id]
+  let sql: string = "UPDATE image_list SET `name` = ?, `url` = ?, `desc` = ?, `tag` = ?, `time_range` = ?, `width` = ?, `height` = ?, `update_time` = ?, `key` = ? WHERE `id` = ?";
+  let modifyParams: string[] = [name, url, desc, tag, time_range, width, height, update_time, key, id]
   try {
     await connection.query(sql, modifyParams)
     await res.json({
@@ -62,12 +65,12 @@ const modifyImage = async (req: Request, res: Response) => {
 }
 
 const addImage = async (req: Request, res: Response) => {
-  const { name, url, desc, tag, time_range, update_time = new Date(), width, height } = req.body;
+  const { name, url, desc, tag, time_range, update_time = new Date(), width, height, key } = req.body;
 
   if (!valid(req, res)) return
 
-  let sql: string = "INSERT into image_list (`name`, `url`, `desc`, `tag`, `time_range`, `update_time`, `width`, `height`) VALUES (?,?,?,?,?,?,?,?)";
-  let addParams: string[] = [name, url, desc, tag, time_range, update_time, width, height]
+  let sql: string = "INSERT into image_list (`name`, `url`, `desc`, `tag`, `time_range`, `update_time`, `width`, `height`, `key`) VALUES (?,?,?,?,?,?,?,?,?)";
+  let addParams: string[] = [name, url, desc, tag, time_range, update_time, width, height, key]
   try {
     await connection.query(sql, addParams)
     await res.json({
@@ -189,6 +192,33 @@ const delTag = async (req: Request, res: Response) => {
   }
 }
 
+function zip(fileData) {
+  return new Promise((resolve, reject) => {
+    tinify.fromBuffer(fileData.buffer).toBuffer(function(err, resultData) {
+      if (err) reject(err)
+      else resolve(resultData)
+    })
+  })
+}
+
+const tingImages = async (req, res) => {
+  const contentType = req.file.mimetype
+  try {
+    const zipFileData = await zip(req.file).catch(async err => {
+      return res.json({
+        success: false,
+        data: err ,
+      })
+    })
+    res.setHeader('Content-Type', contentType)
+    res.setHeader('Compression-Count', tinify.compressionCount)
+
+    return res.send(zipFileData);
+  } catch(e) {
+    return res.send(500);
+  }
+}
+
 export {
   searchPage,
   modifyImage,
@@ -199,6 +229,8 @@ export {
   getTag,
   modifyTag,
   addTag,
-  delTag
+  delTag,
+
+  tingImages
 }
 
