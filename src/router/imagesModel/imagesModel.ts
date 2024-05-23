@@ -5,6 +5,9 @@ import { Message } from "../../utils/enums";
 import { connection as _connection } from "../../utils/mysql";
 import { Request, Response } from "express";
 
+import tinify from "tinify"
+
+
 const connection = _connection('images').promise()
 
 const valid = (req, res) => {
@@ -189,6 +192,33 @@ const delTag = async (req: Request, res: Response) => {
   }
 }
 
+function zip(fileData) {
+  return new Promise((resolve, reject) => {
+    tinify.fromBuffer(fileData.buffer).toBuffer(function(err, resultData) {
+      if (err) reject(err)
+      else resolve(resultData)
+    })
+  })
+}
+
+const tingImages = async (req, res) => {
+  tinify.key = ""
+  const contentType = req.file.mimetype
+  try {
+    const zipFileData = await zip(req.file).catch(async err => {
+      return res.json({
+        success: false,
+        data: err ,
+      })
+    })
+    res.setHeader('Content-Type', contentType)
+  
+    return res.send(zipFileData);
+  } catch(e) {
+    return res.send(500);
+  }
+}
+
 export {
   searchPage,
   modifyImage,
@@ -199,6 +229,8 @@ export {
   getTag,
   modifyTag,
   addTag,
-  delTag
+  delTag,
+
+  tingImages
 }
 
