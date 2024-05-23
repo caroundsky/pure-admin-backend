@@ -51,10 +51,10 @@ export default {
     concurrency: parseInt(process.env.AGENDA_CONCURRENCY, 10),
   },
   mysql: {
-    host: "localhost",
+    host: process.env.Host,
     charset: "utf8_general_ci",
     user: "root",
-    password: "123456789",
+    password: process.env.Password,
   },
   mongodb: {},
   sqlite: {},
