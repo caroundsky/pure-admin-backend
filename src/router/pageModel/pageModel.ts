@@ -86,7 +86,7 @@ const getImages = async (req: Request, res: Response) => {
 const getTag = async (req: Request, res: Response) => {
   if (!await vilidFlash(req, res)) return
 
-  let sql: string = "select * from tag_list";
+  let sql: string = "select * from tag_list order by sort asc";
 
   try {
     const [ data ] = await connection.query(sql)

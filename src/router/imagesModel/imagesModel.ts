@@ -23,16 +23,22 @@ const valid = (req, res) => {
 }
 
 const searchPage = async (req: Request, res: Response) => {
-  const { pageIndex, pageSize } = req.body;
+  const { pageIndex, pageSize, tag } = req.body;
 
   if (!valid(req, res)) return
 
-  let counter_sql = "select count(*) as total from image_list;"
-  let sql: string = "select * from image_list limit " + pageSize + " offset " + pageSize * (pageIndex - 1);
+  let condition = ''
+  if (![undefined, ''].includes(tag)) {
+    condition = "where `tag` = ?"
+  }
 
+  let counter_sql = "select count(*) as total from image_list " + condition
+  let sql: string = "select * from image_list " + condition + " order by update_time desc limit " + pageSize + " offset " + pageSize * (pageIndex - 1);
+
+  let modifyParams: string[] = [tag]
   try {
-    const [ total_res ] = await connection.query(counter_sql)
-    const [ data ] = await connection.query(sql)
+    const [ total_res ] = await connection.query(counter_sql, modifyParams)
+    const [ data ] = await connection.query(sql, modifyParams)
     await res.json({
       success: true,
       data: {
@@ -100,16 +106,19 @@ const delImage = async (req: Request, res: Response) => {
 }
 
 const searchTag = async (req: Request, res: Response) => {
-  const { pageIndex, pageSize } = req.body;
+  const { pageIndex, pageSize, sort } = req.body;
 
   if (!valid(req, res)) return 
 
-  let counter_sql = "select count(*) as total from tag_list;"
-  let sql: string = "select * from tag_list limit " + pageSize + " offset " + pageSize * (pageIndex - 1);
+  const order = ' order by sort asc'
 
+  let counter_sql = "select count(*) as total from tag_list" + order
+  let sql: string = "select * from tag_list" + order + " limit " + pageSize + " offset " + pageSize * (pageIndex - 1);
+
+  let modifyParams: string[] = [order]
   try {
-    const [ total_res ] = await connection.query(counter_sql)
-    const [ data ] = await connection.query(sql)
+    const [ total_res ] = await connection.query(counter_sql, modifyParams)
+    const [ data ] = await connection.query(sql, modifyParams)
     await res.json({
       success: true,
       data: {
@@ -125,7 +134,7 @@ const searchTag = async (req: Request, res: Response) => {
 const getTag = async (req: Request, res: Response) => {
   if (!valid(req, res)) return
   
-  let sql: string = "select * from tag_list";
+  let sql: string = "select * from tag_list order by sort asc";
 
   try {
     const [ data ] = await connection.query(sql)
@@ -139,13 +148,13 @@ const getTag = async (req: Request, res: Response) => {
 }
 
 const modifyTag = async (req: Request, res: Response) => {
-  const { id, tag } = req.body;
+  const { id, tag, sort } = req.body;
   const update_time = new Date()
 
   if (!valid(req, res)) return
 
-  let sql: string = "UPDATE tag_list SET `tag` = ?, `update_time` = ? WHERE `id` = ?";
-  let modifyParams: string[] = [tag, update_time, id]
+  let sql: string = "UPDATE tag_list SET `tag` = ?, `update_time` = ? , `sort` = ? WHERE `id` = ?";
+  let modifyParams: string[] = [tag, update_time, sort, id]
   try {
     await connection.query(sql, modifyParams)
     await res.json({
@@ -158,12 +167,12 @@ const modifyTag = async (req: Request, res: Response) => {
 }
 
 const addTag = async (req: Request, res: Response) => {
-  const { tag, update_time = new Date() } = req.body;
+  const { tag, sort, update_time = new Date() } = req.body;
 
   if (!valid(req, res)) return
 
-  let sql: string = "INSERT into tag_list (`tag`,`update_time`) VALUES (?,?)";
-  let addParams: string[] = [tag, update_time]
+  let sql: string = "INSERT into tag_list (`tag`, `sort` ,`update_time`) VALUES (?,?,?)";
+  let addParams: string[] = [tag, sort, update_time]
   try {
     await connection.query(sql, addParams)
     await res.json({
